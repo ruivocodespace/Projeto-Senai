@@ -26,7 +26,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $estoque = $_POST["estoque"];
     $categoria = $_POST["categoria"];
     $imagem = $_FILES["imagem"];
+    $nomeImagem = "";
+
     
+    //Tipos de imagem
+    if ($imagem["error"] === 0) {
+
+    // 3. Tipos permitidos
+    $tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
+
+    // 4. Validar tipo
+    if (!in_array($imagem["type"], $tiposPermitidos)) {
+        $erro = "Tipo nao permitido. Use JPG, PNG ou WEBP.";
+
+    // 5. Tudo certo: gerar nome e salvar
+    } else {
+        // Extrair a extensao do arquivo original
+        // Ex: "foto.jpg" -> pega so o "jpg"
+        $extensao   = pathinfo($imagem["name"], PATHINFO_EXTENSION);
+        $nomeImagem = "produto_" . time() . "." . $extensao;
+        move_uploaded_file($imagem["tmp_name"], "uploads/" . $nomeImagem);
+    }
+}
 
     // Verificar se o produto já existe
     $sql = "SELECT * FROM produto WHERE nome = '$nome'";
@@ -36,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $erro = "Este produto já foi cadastrado.";
     } else {
         // Inserir o novo produto
-        $sql = "INSERT INTO produto (nome, descricao, preco, estoque, categoria, imagem) VALUES ('$nome', '$descricao', '$preco', '$estoque', '$categoria', '$imagem')";
+        $sql = "INSERT INTO produto (nome, descricao, preco, estoque, categoria, imagem) VALUES ('$nome', '$descricao', '$preco', '$estoque', '$categoria', '$nomeImagem')";
 
         if (mysqli_query($conexao, $sql)) {
             $sucesso = "Produto cadastrado com sucesso!";
@@ -176,6 +197,7 @@ $produto = mysqli_query($conexao, $sql);
                     </label>
                     <input
                         type="file"
+                        accept=".jpg,.png,.webp"
                         id="imagem"
                         name="imagem"
                         required
@@ -211,7 +233,14 @@ $produto = mysqli_query($conexao, $sql);
                         <tr class="border-b border-gray-200 hover:bg-gray-50">
                             <td class="px-4 py-3"><?php echo $u["id"]; ?></td>
                             <td class="px-4 py-3"><?php echo $u["nome"]; ?></td>
-                            <td class="px-4 py-3"><?php echo $u["imagem"]; ?></td>
+                            <td>
+                                <?php if (!empty($u["imagem"])): ?>
+                                    <img src="uploads/<?= $u["imagem"] ?>"
+                                        width="60">
+                                <?php else: ?>
+                                    Sem imagem
+                                <?php endif; ?>
+                            </td>
                             <td class="px-4 py-3 text-gray-500"><?php echo $u["criado_em"]; ?></td>
                         </tr>
                     <?php endwhile; ?>
