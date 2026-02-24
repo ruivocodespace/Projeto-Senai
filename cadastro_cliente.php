@@ -197,7 +197,7 @@ $cliente = mysqli_query($conexao, $sql);
             </form>
         </div>
 
-        <!-- Lista de Usuários -->
+        <!-- Lista de Clientes -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Clientes Cadastrados</h3>
             <table class="w-full text-sm">
