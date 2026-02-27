@@ -8,3 +8,23 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
+.excluir{
+    background: red;
+    color: white;
+    padding: 5px 10px;
+    width: 96%;
+    float: left;
+    margin: 2%;
+    text-align:center;
+}
+
+.editar{
+    background: blue;
+    color: white;
+    padding: 5px 10px;
+    width: 96%;
+    float: left;
+    margin: 2%;
+    text-align:center;
+}

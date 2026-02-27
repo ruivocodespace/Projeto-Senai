@@ -17,52 +17,98 @@ require_once "conexao.php";
 $sucesso = "";
 $erro = "";
 
+$editando = NULL;
+
+// Editar cliente
+
+if(isset($_GET["editar"])){
+    $id = $_GET["editar"];
+    $sql = "SELECT * FROM cliente WHERE id = '$id'";
+    $res = mysqli_query($conexao, $sql);
+    $editando = mysqli_fetch_assoc($res);
+}
+
 // Verificar se o formulário de cadastro foi enviado
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
+    $id  = $_POST["id"];
     $nome  = $_POST["nome"];
+    $telefone = $_POST["telefone"];
     $email = $_POST["email"];
     $cpf = $_POST["cpf"];
     $endereco = $_POST["endereco"];
+    // Files para arquivos
     $imagem = $_FILES["imagem"];
-    $nomeImagem = "";
 
-   //Processamento da imagem
-   if ($imagem["error"] === 0) {
+// Processamento da imagem
+   
+    // Formatos permitidos
     $tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
-
-    if (!in_array($imagem["type"], $tiposPermitidos)) {
+    
+    // Validar formatos
+    if ($imagem["size"] > 0 && !in_array($imagem["type"], $tiposPermitidos)) {
         $erro = "Tipo não permitido. Use JPG, PNG ou WEBP.";
+
+    // Formato correto segue:
     } else {
-        $extensao   = pathinfo($imagem["name"], PATHINFO_EXTENSION);
-        $nomeImagem = "cliente_" . time() . "." . $extensao;
-        move_uploaded_file($imagem["tmp_name"], "uploads/" . $nomeImagem);
-    }
-}
-
-if (empty($erro)) {
-    // Verificar se o email já existe
-    $sql = "SELECT * FROM cliente WHERE email = '$email'";
-    $resultado = mysqli_query($conexao, $sql);
-
-    if (mysqli_num_rows($resultado) > 0) {
-        $erro = "Este email já está cadastrado.";
-    } else {
-        // Inserir o novo cliente
-        $sql = "INSERT INTO cliente (nome, email, cpf, endereco, imagem) VALUES ('$nome', '$email', '$cpf','$endereco', '$nomeImagem')";
-
-        if (mysqli_query($conexao, $sql)) {
-            $sucesso = "Cliente cadastrado com sucesso!";
-        } else {
-            $erro = "Erro ao cadastrar cliente.";
+        $nomeImagem = '';
+        if($imagem["size"] > 0){
+            $extensao   = pathinfo($imagem["name"], PATHINFO_EXTENSION);
+            $nomeImagem = "cliente_" . time() . "." . $extensao;
+            move_uploaded_file($imagem["tmp_name"], "uploads/" . $nomeImagem);
         }
+
+        // Verificar se o email já existe
+        $sql = "SELECT * FROM cliente WHERE email = '$email'";
+        $resultado = mysqli_query($conexao, $sql);
+
+        if (mysqli_num_rows($resultado) > 0 && $editando !== NULL) {
+            $erro = "Este email já está cadastrado.";
+        } else {
+            if($id){
+                if($imagem["size"] > 0){
+                    $sql = "UPDATE cliente SET 
+                    nome = '$nome',
+                    telefone = '$telefone',
+                    email = '$email',
+                    cpf = '$cpf',
+                    imagem = '$nomeImagem',
+                    endereco = '$endereco'
+                    WHERE id = $id
+                    ";
+                }else{
+                    $sql = "UPDATE cliente SET 
+                    nome = '$nome',
+                    telefone = '$telefone',
+                    email = '$email',
+                    cpf = '$cpf',
+                    endereco = '$endereco'
+                    WHERE id = $id
+                    ";
+                }
+
+                $sucesso = "Cliente atualizado com sucesso!";
+            }else{
+                if($imagem["size"] > 0){
+                    $sql = "INSERT INTO cliente (nome, telefone, email, cpf, endereco, imagem) VALUES ('$nome', '$telefone', '$email', '$cpf', '$endereco', '$nomeImagem')";
+                }else{
+                    $sql = "INSERT INTO cliente (nome, telefone, email, cpf, endereco) VALUES ('$nome', '$telefone', '$email', '$cpf', '$endereco')";
+                }
+                    
+                $sucesso = "Cliente cadastrado com sucesso!";
+
+            }
+
+            if(!mysqli_query($conexao, $sql)) {
+                $erro = "Erro ao cadastrar cliente.";
+            }
+        }
+
+
     }
-} 
 }
 
-// Buscar todos os clientes para listar
-$sql = "SELECT id, nome, imagem, criado_em FROM cliente ORDER BY id DESC";
-$cliente = mysqli_query($conexao, $sql);
+
 ?>
 
 <!DOCTYPE html>
@@ -78,6 +124,7 @@ $cliente = mysqli_query($conexao, $sql);
     <!-- CSS personalizado -->
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body class="bg-gray-100 min-h-screen flex">
 
      <!-- ========== MENU LATERAL (Sidebar) ========== -->
@@ -110,6 +157,7 @@ $cliente = mysqli_query($conexao, $sql);
         <!-- Formulário de Cadastro -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8 max-w-xl">
             <form method="POST" action="cadastro_cliente.php" enctype="multipart/form-data">
+            <input type="hidden" value="<?=$editando['id'] ?? "" ?>" name="id"/>
 
                 <!-- Campo Nome -->
                 <div class="mb-4">
@@ -117,11 +165,27 @@ $cliente = mysqli_query($conexao, $sql);
                         Nome
                     </label>
                     <input
+                        value="<?= $editando['nome'] ?? "" ?>"
                         type="text"
                         id="nome"
                         name="nome"
                         required
                         placeholder="Digite o nome"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+                <!-- Campo telefone -->
+                <div class="mb-4">
+                    <label for="telefone" class="block text-gray-700 font-medium mb-2">
+                    Telefone
+                    </label>
+                    <input
+                        value="<?=$editando['telefone'] ?? "" ?>"
+                        type="text"
+                        id="telefone"
+                        name="telefone"
+                        required
+                        placeholder="Digite o telefone"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                 </div>
@@ -132,6 +196,7 @@ $cliente = mysqli_query($conexao, $sql);
                         Email
                     </label>
                     <input
+                        value="<?= $editando['email'] ?? "" ?>"
                         type="email"
                         id="email"
                         name="email"
@@ -147,6 +212,7 @@ $cliente = mysqli_query($conexao, $sql);
                         CPF
                     </label>
                     <input
+                        value="<?= $editando['cpf'] ?? "" ?>"
                         type="number"
                         id="cpf"
                         name="cpf"
@@ -159,9 +225,10 @@ $cliente = mysqli_query($conexao, $sql);
                 <!-- Campo endereço -->
                 <div class="mb-4">
                     <label for="endereco" class="block text-gray-700 font-medium mb-2">
-                        Endereço
+                        Endereço completo
                     </label>
                     <input
+                        value="<?= $editando['endereco'] ?? "" ?>"
                         type="text"
                         id="endereco"
                         name="endereco"
@@ -181,7 +248,6 @@ $cliente = mysqli_query($conexao, $sql);
                         accept=".jpg,.png,.webp"
                         id="imagem"
                         name="imagem"
-                        required
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                 </div>
@@ -203,28 +269,41 @@ $cliente = mysqli_query($conexao, $sql);
             <table class="w-full text-sm">
                 <thead>
                     <tr class="bg-gray-800 text-white">
-                        <th class="px-4 py-3 text-left rounded-tl-lg">ID</th>
+                        <th class="px-4 py-3 text-left rounded-tl-lg">Imagem</th>
                         <th class="px-4 py-3 text-left">Nome</th>
-                        <th class="px-4 py-3 text-left">Imagem</th>
-                        <th class="px-4 py-3 text-left rounded-tr-lg">Criado em</th>
+                        <th class="px-4 py-3 text-left">Email</th>
+                        <th class="px-4 py-3 text-left">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php while ($u = mysqli_fetch_assoc($cliente)): ?>
-                        <tr class="border-b border-gray-200 hover:bg-gray-50">
-                            <td class="px-4 py-3"><?php echo $u["id"]; ?></td>
-                            <td class="px-4 py-3"><?php echo $u["nome"]; ?></td>
-                            <td>
+                    <?php 
+                        // echo '<pre>';
+                        // print_r($cliente);
+                        // die;
+
+                        // Buscar todos os clientes para listar
+                        $sql = "SELECT id, nome, imagem, email FROM cliente ORDER BY id DESC";
+                        $cliente = mysqli_query($conexao, $sql);   
+
+
+                        while ($u = mysqli_fetch_assoc($cliente)): ?>
+                            <tr class="border-b border-gray-200 hover:bg-gray-50">
+                                <td class="px-4 py-3">
                                 <?php if (!empty($u["imagem"])): ?>
                                     <img src="uploads/<?= $u["imagem"] ?>"
                                         width="60">
-                                <?php else: ?>
-                                    Sem imagem
-                                <?php endif; ?>
+                            <?php else: ?>
+                                Sem imagem
+                            <?php endif; ?>
                             </td>
-                            <td class="px-4 py-3 text-gray-500"><?php echo $u["criado_em"]; ?></td>
-                        </tr>
-                    <?php endwhile; ?>
+                                <td class="px-4 py-3"><?php echo $u["nome"]; ?></td>
+                                <td class="px-4 py-3"><?php echo $u["email"]; ?></td>
+                                <td class="px-4 py-3">
+                                <a class="editar" href="?editar=<?=$u["id"]; ?>">Editar</a><br>
+                                <a onclick="return confirm('Tem certeza disso?')" class="exluir" href="?excluir=<?=$u["id"]; ?>">Excluir</a>
+                            </td>
+                            </tr>
+                        <?php endwhile; ?>
                 </tbody>
             </table>
         </div>
